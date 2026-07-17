@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0e1220">
+<title>〇×エビング</title>
+<style>
+  :root{
+    --bg:#0e1220; --card:#181d30; --card2:#212842;
+    --accent:#2dd4bf; --accent2:#38bdf8;
+    --ebb:#fb923c; --ebb2:#f43f5e;
+    --ok:#34d399; --ng:#fb7185; --warn:#fbbf24;
+    --text:#eef1fa; --muted:#94a0bd; --line:#2c3450;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    line-height:1.6;overscroll-behavior:none;-webkit-font-smoothing:antialiased;
+  }
+  #app{max-width:680px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;
+    padding:env(safe-area-inset-top) 0 0 0;}
+  .view{flex:1;padding:16px 16px 96px;display:none;}
+  .view.active{display:block;animation:fade .18s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){ .view.active{animation:none} }
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 4px;}
+  header h1{font-size:18px;font-weight:800;letter-spacing:.02em;}
+  header h1 .ebb-c{color:var(--ebb);}
+  header .sub{font-size:11px;color:var(--muted);}
+
+  .hero{display:flex;flex-direction:column;gap:12px;margin-top:8px;}
+  .big-btn{position:relative;background:linear-gradient(135deg,#123c3a,#0f2f3f);
+    border:1px solid var(--accent);color:var(--text);border-radius:16px;
+    padding:20px 18px;font-size:18px;font-weight:800;cursor:pointer;text-align:left;
+    font-family:inherit;display:flex;flex-direction:column;gap:4px;}
+  .big-btn .ico{font-size:24px;}
+  .big-btn small{font-size:12px;font-weight:500;color:var(--muted);}
+  .ebb-btn{position:relative;background:linear-gradient(135deg,#3a2313,#3f1a24);
+    border:1px solid var(--ebb);color:var(--text);border-radius:16px;
+    padding:20px 18px;font-size:18px;font-weight:800;cursor:pointer;text-align:left;
+    font-family:inherit;display:flex;flex-direction:column;gap:4px;}
+  .ebb-btn small{font-size:12px;font-weight:500;color:var(--muted);}
+  .badge{position:absolute;top:-8px;right:-6px;background:var(--ebb2);color:#fff;
+    font-size:12px;font-weight:800;min-width:24px;height:24px;border-radius:999px;
+    display:flex;align-items:center;justify-content:center;padding:0 7px;}
+  .quick{display:flex;gap:10px;}
+  .quick button{flex:1;background:var(--card);border:1px solid var(--line);color:var(--text);
+    border-radius:14px;padding:12px 8px;font-size:12px;cursor:pointer;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .quick .num{font-size:20px;font-weight:800;color:var(--accent);}
+  .quick .num.ng{color:var(--ng);}
+  .subj-pick{margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;}
+  .subj-pick label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px;}
+  .subj-pick select{width:100%;background:var(--card2);color:var(--text);border:1px solid var(--line);
+    border-radius:10px;padding:11px;font-size:15px;font-family:inherit;}
+
+  /* quiz */
+  .q-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .q-prog{font-size:13px;color:var(--muted);font-weight:600;}
+  .q-mode{font-size:11px;font-weight:800;border-radius:999px;padding:2px 10px;border:1px solid var(--line);color:var(--muted);}
+  .q-mode.ebb{border-color:var(--ebb);color:var(--ebb);}
+  .timerbar{height:5px;background:var(--card2);border-radius:99px;overflow:hidden;margin-bottom:14px;}
+  .timerbar i{display:block;height:100%;background:var(--accent);width:100%;border-radius:99px;transition:width .95s linear;}
+  .timerbar i.warn{background:var(--warn);}
+  .timerbar i.hurry{background:var(--ng);}
+  .q-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 16px;margin-bottom:14px;}
+  .q-subj{display:inline-block;font-size:11px;font-weight:800;color:var(--accent);
+    border:1px solid var(--accent);border-radius:999px;padding:1px 10px;margin-bottom:10px;}
+  .q-text{font-size:17px;font-weight:700;line-height:1.75;}
+  .ans-row{display:flex;gap:10px;}
+  .ans-row button{flex:1;border-radius:16px;padding:18px 0;font-size:26px;font-weight:800;
+    cursor:pointer;font-family:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);}
+  .ans-row .a-maru{border-color:var(--ok);color:var(--ok);}
+  .ans-row .a-batsu{border-color:var(--ng);color:var(--ng);}
+  .ans-row .a-dunno{font-size:14px;color:var(--muted);}
+  .result{margin-top:14px;border-radius:16px;padding:16px;border:1px solid var(--line);background:var(--card);display:none;}
+  .result.show{display:block;animation:fade .18s ease;}
+  .result .verdict{font-size:18px;font-weight:800;margin-bottom:6px;}
+  .result .verdict.ok{color:var(--ok);}
+  .result .verdict.ng{color:var(--ng);}
+  .result .truth{font-size:14px;margin-bottom:8px;}
+  .result .exp{font-size:14px;color:#d4dbf0;background:#12172a;border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+  .result .src{font-size:12px;color:var(--muted);margin-bottom:8px;}
+  .result .lv{font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px;}
+  .result .lv b{color:var(--ebb);letter-spacing:2px;}
+  .next-btn{width:100%;margin-top:12px;background:var(--accent);color:#06282a;border:none;
+    border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;}
+  .quit-btn{width:100%;margin-top:8px;background:none;color:var(--muted);border:1px solid var(--line);
+    border-radius:14px;padding:11px;font-size:13px;cursor:pointer;font-family:inherit;}
+  .done{text-align:center;padding:40px 10px;}
+  .done .big{font-size:44px;margin-bottom:10px;}
+  .done h2{font-size:19px;margin-bottom:8px;}
+  .done p{font-size:13.5px;color:var(--muted);}
+
+  /* manage */
+  .m-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .m-head h2{font-size:16px;}
+  .m-add{background:var(--accent);color:#06282a;border:none;border-radius:10px;
+    padding:9px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
+  .m-filter{width:100%;background:var(--card2);color:var(--text);border:1px solid var(--line);
+    border-radius:10px;padding:10px;font-size:14px;font-family:inherit;margin-bottom:10px;}
+  .m-item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:8px;}
+  .m-item .t{font-size:13.5px;font-weight:600;margin-bottom:5px;}
+  .m-item .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);flex-wrap:wrap;}
+  .m-item .meta .mk{font-weight:800;}
+  .m-item .meta .mk.o{color:var(--ok);} .m-item .meta .mk.x{color:var(--ng);}
+  .m-item .ops{margin-top:7px;display:flex;gap:8px;}
+  .m-item .ops button{background:var(--card2);border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;}
+  .m-item .ops .del{color:var(--ng);border-color:var(--ng);}
+  .form{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;display:none;}
+  .form.show{display:block;}
+  .form label{display:block;font-size:12px;color:var(--muted);margin:9px 0 4px;}
+  .form input[type=text],.form textarea,.form select{width:100%;background:var(--card2);color:var(--text);
+    border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px;font-family:inherit;}
+  .form textarea{min-height:72px;resize:vertical;}
+  .truth-row{display:flex;gap:10px;margin-top:4px;}
+  .truth-row button{flex:1;border-radius:10px;padding:12px 0;font-size:20px;font-weight:800;
+    cursor:pointer;font-family:inherit;background:var(--card2);border:1px solid var(--line);color:var(--muted);}
+  .truth-row button.sel-o{border-color:var(--ok);color:var(--ok);background:#0f2e26;}
+  .truth-row button.sel-x{border-color:var(--ng);color:var(--ng);background:#331a22;}
+  .form .save{width:100%;margin-top:14px;background:var(--accent);color:#06282a;border:none;
+    border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;}
+
+  /* stats */
+  .s-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .s-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;}
+  .s-card .k{font-size:11px;color:var(--muted);}
+  .s-card .v{font-size:23px;font-weight:800;color:var(--accent);}
+  .s-sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;}
+  .s-sec h3{font-size:14px;margin-bottom:10px;}
+  .lvrow{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:12.5px;}
+  .lvrow .lab{width:88px;color:var(--muted);letter-spacing:1px;}
+  .lvrow .bar{flex:1;height:9px;background:var(--card2);border-radius:99px;overflow:hidden;}
+  .lvrow .bar i{display:block;height:100%;background:var(--ebb);border-radius:99px;}
+  .lvrow .n{width:34px;text-align:right;color:var(--muted);}
+  .duerow{display:flex;justify-content:space-between;font-size:13.5px;padding:7px 0;border-bottom:1px dashed var(--line);}
+  .duerow:last-child{border-bottom:none;}
+  .duerow b{color:var(--ebb);}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;font-size:14px;padding:4px 0;}
+  .sw{position:relative;width:52px;height:30px;background:var(--card2);border:1px solid var(--line);
+    border-radius:99px;cursor:pointer;transition:.2s;}
+  .sw i{position:absolute;top:3px;left:3px;width:22px;height:22px;background:var(--muted);border-radius:50%;transition:.2s;}
+  .sw.on{background:#0f3e3a;border-color:var(--accent);}
+  .sw.on i{left:25px;background:var(--accent);}
+  .tool-btn{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:12px;
+    padding:13px;font-size:14px;font-weight:600;cursor:pointer;width:100%;font-family:inherit;margin-top:8px;}
+  .danger{background:var(--card);border:1px solid var(--ng);color:var(--ng);border-radius:12px;
+    padding:13px;font-size:14px;font-weight:600;cursor:pointer;width:100%;font-family:inherit;margin-top:8px;}
+
+  nav{position:fixed;bottom:0;left:0;right:0;background:rgba(14,18,32,.95);
+    backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;
+    padding:6px 0 calc(6px + env(safe-area-inset-bottom));max-width:680px;margin:0 auto;}
+  nav button{flex:1;background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;
+    padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit;}
+  nav button .ico{font-size:21px;line-height:1;}
+  nav button.active{color:var(--accent);}
+  nav button:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{
+    outline:2px solid var(--accent2);outline-offset:2px;}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--card2);color:var(--text);padding:12px 20px;border-radius:999px;font-size:14px;
+    font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:50;border:1px solid var(--line);max-width:90%;text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <h1>〇×<span class="ebb-c">エビング</span></h1>
+      <div class="sub" id="subCount">問題 0 問</div>
+    </div>
+    <div class="sub">忘れる直前に、もう一度。</div>
+  </header>
+
+  <!-- HOME -->
+  <section class="view active" id="view-home">
+    <div class="hero">
+      <button class="big-btn" onclick="startQuiz('all')">
+        <span class="ico">⚡</span>スタート
+        <small>タップで即ランダム ○×出題</small>
+      </button>
+      <button class="ebb-btn" id="ebbBtn" onclick="startQuiz('ebbing')">
+        🦐 エビングモード
+        <small id="ebbSub">忘れる直前の問題から復習</small>
+        <span class="badge" id="ebbBadge" style="display:none">0</span>
+      </button>
+      <div class="quick">
+        <button onclick="startQuiz('mistakes')">
+          <span class="num ng" id="qMiss">0</span><span>間違えた問題だけ</span>
+        </button>
+        <button onclick="goView('stats')">
+          <span class="num" id="qAcc">—</span><span>正答率を見る</span>
+        </button>
+      </div>
+      <div class="subj-pick">
+        <label for="subjSelect">科目をしぼって出題</label>
+        <select id="subjSelect" onchange="startBySubject()">
+          <option value="">— 科目を選ぶとすぐ出題 —</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section class="view" id="view-quiz">
+    <div class="q-top">
+      <span class="q-prog" id="qProg"></span>
+      <span class="q-mode" id="qMode"></span>
+    </div>
+    <div class="timerbar" id="timerBar" style="display:none"><i id="timerFill"></i></div>
+    <div id="quizBody">
+      <div class="q-card">
+        <span class="q-subj" id="qSubj"></span>
+        <div class="q-text" id="qText"></div>
+      </div>
+      <div class="ans-row" id="ansRow">
+        <button class="a-maru" onclick="answer(true)">○</button>
+        <button class="a-batsu" onclick="answer(false)">×</button>
+        <button class="a-dunno" onclick="answer(null)">わからん</button>
+      </div>
+      <div class="result" id="result">
+        <div class="verdict" id="verdict"></div>
+        <div class="truth" id="truth"></div>
+        <div class="exp" id="exp"></div>
+        <div class="src" id="src"></div>
+        <div class="lv" id="lvInfo"></div>
+        <button class="next-btn" onclick="nextQ()">次の問題へ</button>
+      </div>
+      <button class="quit-btn" onclick="endQuiz()">出題をやめてホームへ</button>
+    </div>
+    <div class="done" id="doneBox" style="display:none">
+      <div class="big">🎉</div>
+      <h2 id="doneTitle">おつかれさま！</h2>
+      <p id="doneMsg"></p>
+      <button class="next-btn" onclick="goView('home');refreshHome()">ホームへ戻る</button>
+    </div>
+  </section>
+
+  <!-- MANAGE -->
+  <section class="view" id="view-manage">
+    <div class="m-head">
+      <h2>問題管理</h2>
+      <button class="m-add" onclick="openForm()">＋ 追加</button>
+    </div>
+    <div class="form" id="form">
+      <label for="f-subject">科目</label>
+      <input type="text" id="f-subject" list="subjList" placeholder="例：入管法">
+      <datalist id="subjList"></datalist>
+      <label for="f-question">問題文（○×で答えられる命題）</label>
+      <textarea id="f-question" placeholder="例：在留カードは常時携帯しなければならない。"></textarea>
+      <label>正解</label>
+      <div class="truth-row">
+        <button id="tO" onclick="setTruth(true)">○</button>
+        <button id="tX" onclick="setTruth(false)">×</button>
+      </div>
+      <label for="f-explain">解説（任意）</label>
+      <textarea id="f-explain" placeholder="なぜ○／×なのか"></textarea>
+      <label for="f-source">根拠・出典（任意）</label>
+      <input type="text" id="f-source" placeholder="例：入管法23条">
+      <button class="save" onclick="saveForm()">保存する</button>
+    </div>
+    <select class="m-filter" id="mFilter" onchange="renderManage()">
+      <option value="">すべての科目</option>
+    </select>
+    <div id="mList"></div>
+  </section>
+
+  <!-- STATS -->
+  <section class="view" id="view-stats">
+    <div class="s-grid">
+      <div class="s-card"><div class="k">総解答数</div><div class="v" id="sAttempts">0</div></div>
+      <div class="s-card"><div class="k">正答率</div><div class="v" id="sAcc">—</div></div>
+    </div>
+    <div class="s-sec">
+      <h3>🦐 復習の予定</h3>
+      <div class="duerow"><span>いま復習どき</span><b id="dueNow">0問</b></div>
+      <div class="duerow"><span>明日まで</span><b id="dueTom">0問</b></div>
+      <div class="duerow"><span>7日以内</span><b id="dueWeek">0問</b></div>
+    </div>
+    <div class="s-sec">
+      <h3>記憶レベルの分布</h3>
+      <div id="lvDist"></div>
+    </div>
+    <div class="s-sec">
+      <h3>設定</h3>
+      <div class="toggle-row">
+        <span>10秒タイマー</span>
+        <div class="sw" id="swTimer" role="switch" aria-checked="true" tabindex="0" onclick="toggleTimer()" onkeydown="if(event.key==='Enter'||event.key===' ')toggleTimer()"><i></i></div>
+      </div>
+    </div>
+    <button class="tool-btn" onclick="exportData()">バックアップを書き出す（JSON）</button>
+    <button class="tool-btn" onclick="document.getElementById('importFile').click()">バックアップを読み込む（旧アプリのJSONもOK）</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)">
+    <button class="danger" onclick="resetStats()">学習記録だけリセット</button>
+  </section>
+
+  <nav>
+    <button class="active" data-v="home" onclick="goView('home')"><span class="ico">⚡</span>出題</button>
+    <button data-v="manage" onclick="goView('manage')"><span class="ico">📝</span>問題管理</button>
+    <button data-v="stats" onclick="goView('stats')"><span class="ico">📊</span>学習記録</button>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const KEY="ox_ebbing_v1";
+const OLD_KEY="shihou_drill_ox_v1";
+const DAY=86400000;
+/* エビングハウス復習間隔：記憶Lv1→1日後、Lv2→3日後、Lv3→7日後、Lv4→14日後、Lv5→30日後、Lv6→60日後 */
+const INTERVALS=[1,3,7,14,30,60];
+const MAX_LV=INTERVALS.length;
+const TIME_LIMIT=10;
+
+/* ============ 内蔵問題（入管法20問・建設業許可20問） ============ */
+const PRELOADED=[
+{id:"imm001",subject:"入管法",question:"短期滞在（観光）の在留資格でも、日本の会社でアルバイトとして報酬を得て働くことができる。",correct:false,explain:"できません。短期滞在は観光・親族訪問・短期商用などのための資格で、報酬を伴う就労はできず、資格外活動許可も原則出ません。働くには就労できる在留資格への変更が必要です。",source:"入管法 別表第一（短期滞在）"},
+{id:"imm002",subject:"入管法",question:"在留カードは、中長期在留者が常に携帯していなければならない。",correct:true,explain:"常時携帯義務があります（16歳未満は例外）。提示を求められたら応じる必要があり、不携帯には罰則があります。特別永住者証明書は常時携帯義務の扱いが異なる点に注意。",source:"入管法23条（在留カードの携帯・提示義務）"},
+{id:"imm003",subject:"入管法",question:"『留学』の在留資格の外国人は、資格外活動許可を受ければ、原則として週28時間以内までアルバイトができる。",correct:true,explain:"資格外活動許可を得れば原則週28時間以内（長期休業期間中は1日8時間以内など）まで就労できます。風俗営業関連の業務は不可。許可なしで働くと不法就労になります。",source:"入管法19条・資格外活動許可"},
+{id:"imm004",subject:"入管法",question:"『技術・人文知識・国際業務』（技人国）の在留資格で、工場のライン作業や建設現場の単純作業のみに従事させることができる。",correct:false,explain:"技人国は専門的・技術的分野の在留資格で、いわゆる単純労働のみへの従事はできません。学歴・実務と業務内容の関連性が審査されます。単純作業中心の現場は特定技能などの検討が必要です。",source:"入管法 別表第一の二（技術・人文知識・国際業務）"},
+{id:"imm005",subject:"入管法",question:"『永住』の許可を受けることと、日本国籍を取得する『帰化』は、同じ手続きである。",correct:false,explain:"別物です。永住は外国籍のまま在留資格が『永住者』になるもの（出入国在留管理庁）。帰化は日本国籍を取得する手続きで法務大臣の許可（法務局が窓口）。要件も窓口も異なります。",source:"永住＝入管法22条／帰化＝国籍法4条以下"},
+{id:"imm006",subject:"入管法",question:"『家族滞在』の在留資格の配偶者は、資格外活動許可を受けなくても、フルタイムで自由に就労できる。",correct:false,explain:"家族滞在は原則就労できません。資格外活動許可を受けて初めて、原則週28時間以内の就労が可能になります。フルタイムで働くには就労可能な在留資格への変更が必要です。",source:"入管法 別表第一（家族滞在）・資格外活動許可"},
+{id:"imm007",subject:"入管法",question:"在留期間の更新申請は、在留期間の満了日を過ぎてからでも、いつでも自由に行える。",correct:false,explain:"満了日までに申請が必要です（通常、満了のおおむね3か月前から受付）。満了日を過ぎて在留するとオーバーステイ（不法残留）となり、退去強制の対象になります。",source:"入管法21条（在留期間の更新）"},
+{id:"imm008",subject:"入管法",question:"在留資格を失ったまま在留期間を超えて日本にとどまること（オーバーステイ）は、退去強制の対象になる。",correct:true,explain:"不法残留は退去強制事由です。自ら申し出て手続きをする『出国命令制度』など救済の仕組みもありますが、いずれにせよ早急な専門家相談が必要です。",source:"入管法24条（退去強制）"},
+{id:"imm009",subject:"入管法",question:"技能実習制度は廃止され、2027年（令和9年）4月から新たに『育成就労』制度が始まる。",correct:true,explain:"2024年（令和6年）の改正で技能実習は発展的に解消され、2027年4月1日から育成就労がスタートします。目的が『人材確保＋育成』に明確化され、育成就労→特定技能1号→2号というキャリアパスが前提です。",source:"改正入管法・育成就労法（令和6年法律第60号）"},
+{id:"imm010",subject:"入管法",question:"『特定技能1号』の外国人は、原則として配偶者や子を日本に呼び寄せて一緒に暮らすことができる。",correct:false,explain:"特定技能1号は家族帯同ができません（通算在留5年が上限）。家族帯同や在留期間の上限なしが認められるのは、より高度な特定技能2号です。",source:"入管法 別表第一の二（特定技能）"},
+{id:"imm011",subject:"入管法",question:"『特定技能2号』は、在留期間の更新回数に上限がなく、要件を満たせば家族の帯同も認められる。",correct:true,explain:"特定技能2号は熟練技能者向けで、更新に上限がなく家族帯同も可能です。要件を満たせば将来的に永住申請につながる可能性もあります。",source:"入管法 別表第一の二（特定技能2号）"},
+{id:"imm012",subject:"入管法",question:"出国後1年以内に再入国する場合は、原則として『みなし再入国許可』により、再入国許可をあらためて受けなくてよい。",correct:true,explain:"有効な在留資格・在留カードを持つ人が、出国後1年以内（在留期限が先に来る場合はその日まで）に戻るなら、出国時の手続きで再入国許可は原則不要です。特別永住者は2年。1年を超えるなら事前に再入国許可が必要。",source:"入管法26条の2（みなし再入国許可）"},
+{id:"imm013",subject:"入管法",question:"2026年4月15日以降の技人国の申請では、カテゴリー3・4の企業で言語を用いた対人業務に従事する場合、CEFR・B2相当（JLPT・N2など）の日本語能力を示す資料が必要になる。",correct:true,explain:"2026年4月15日以降の申請から、カテゴリー3・4かつ対人業務に言語能力を用いる場合、CEFR・B2相当の証明（JLPT・N2以上、BJT400点以上、日本の大学卒業などのみなし要件を含む）が求められます。",source:"出入国在留管理庁（技人国の日本語要件）"},
+{id:"imm014",subject:"入管法",question:"在留資格の変更や在留期間の更新は、要件を形式的に満たしていれば、必ず許可される。",correct:false,explain:"変更・更新は法務大臣（出入国在留管理庁）の裁量判断で、『相当性』が総合的に審査されます。形式要件を満たしても不許可になり得ます。素行や納税・在留状況なども見られます。",source:"入管法20条・21条"},
+{id:"imm015",subject:"入管法",question:"『経営・管理』は、日本で会社を経営したり、事業の管理に従事したりするための在留資格である。",correct:true,explain:"会社の経営者・役員や事業の管理者が対象です。事業所の確保や事業の継続性・安定性などが審査されます。",source:"入管法 別表第一の二（経営・管理）"},
+{id:"imm016",subject:"入管法",question:"外国人が日本人と結婚すると、その時点で自動的に日本国籍を取得する。",correct:false,explain:"結婚しても国籍は自動取得しません。通常は在留資格『日本人の配偶者等』を取得します。日本国籍を得るには別途『帰化』の許可が必要です。",source:"国籍法（結婚による国籍の自動取得はない）"},
+{id:"imm017",subject:"入管法",question:"育成就労制度では、一定の要件のもとで、本人の意向による転籍（別の受入れ機関への移籍）が認められる。",correct:true,explain:"転籍が原則禁止だった技能実習と異なり、育成就労では分野ごとの制限期間（1〜2年）などの要件を満たせば、本人の意向による同一分野内の転籍が認められます。",source:"育成就労法（転籍制度）"},
+{id:"imm018",subject:"入管法",question:"不法就労と知りながら外国人を雇った事業主は、『不法就労助長罪』に問われる可能性がある。",correct:true,explain:"事業主も処罰対象です。在留カードでの就労可否確認を怠った場合など、『知らなかった』では免れないことがあります。採用時の在留資格・就労可否の確認が重要です。",source:"入管法73条の2（不法就労助長）"},
+{id:"imm019",subject:"入管法",question:"観光目的で来日する外国人は、国籍にかかわらず全員、事前に査証（ビザ）を取得しなければ入国できない。",correct:false,explain:"日本と査証免除の取決めがある国・地域の国籍者は、短期滞在について事前のビザなしで入国できます（滞在可能日数は取決めによる）。免除対象外の国籍者はビザが必要です。",source:"査証免除措置（短期滞在）"},
+{id:"imm020",subject:"入管法",question:"特定技能の在留資格を得るには、原則として、技能試験と日本語試験に合格すること（または技能実習2号を良好に修了していること）が必要である。",correct:true,explain:"特定技能は『即戦力』が前提で、分野ごとの技能試験＋日本語試験の合格が原則。技能実習2号を良好に修了し業務の関連性がある場合は試験免除ルートもあります。",source:"入管法 別表第一の二（特定技能）・分野別運用方針"},
+{id:"con001",subject:"建設業許可",question:"請負代金500万円未満（建築一式工事を除く・税込）の工事は『軽微な建設工事』にあたり、建設業許可がなくても請け負える。",correct:true,explain:"建築一式以外は税込500万円未満なら許可不要（軽微な建設工事）。ただし500万円ちょうどは『未満』でないため許可が必要になります。",source:"建設業法3条・施行令1条の2"},
+{id:"con002",subject:"建設業許可",question:"建築一式工事は、請負代金1,500万円未満（税込）の工事、または延べ面積150㎡未満の木造住宅工事であれば、許可がなくても請け負える。",correct:true,explain:"建築一式工事は基準が異なり、1,500万円未満（税込）または延べ面積150㎡未満の木造住宅なら軽微な工事として許可不要です。",source:"建設業法施行令1条の2"},
+{id:"con003",subject:"建設業許可",question:"税抜490万円の工事は、消費税を加えても500万円未満なので、必ず軽微な工事として許可は不要である。",correct:false,explain:"税抜490万円は消費税10%を加えると539万円となり、税込500万円以上なので許可が必要です。軽微かどうかは必ず『税込』で判断します。",source:"建設業法施行令1条の2（税込で判断）"},
+{id:"con004",subject:"建設業許可",question:"一つの工事をわざと複数の契約に分ければ、それぞれ500万円未満にして、許可なしで請け負うことができる。",correct:false,explain:"正当な理由のない分割は、各契約を合算して判断します。許可逃れの分割は建設業法違反で罰則の対象。材料と工事を分けて契約する手法も認められません。",source:"建設業許可事務ガイドライン（第3条関係）"},
+{id:"con005",subject:"建設業許可",question:"軽微な工事に当たるかどうかの金額は、消費税を含めた金額で判断する。",correct:true,explain:"請負代金は税込で判断します。さらに注文者支給材がある場合はその市場価格等も加えて計算する点に注意が必要です。",source:"建設業法施行令1条の2"},
+{id:"con006",subject:"建設業許可",question:"注文者が材料を無償で支給する場合、その材料費は請負代金に含めず、工賃だけで500万円未満かを判断すればよい。",correct:false,explain:"注文者が材料を提供する場合は、その市場価格（＋運送費）を請負代金に加えて判断します。工賃が少額でも材料費が高いと許可が必要になることがあります。",source:"建設業法施行令1条の2第3項"},
+{id:"con007",subject:"建設業許可",question:"建設業の許可は、営業所の所在地に応じて『国土交通大臣許可』か『都道府県知事許可』かに分かれる。",correct:true,explain:"2つ以上の都道府県に営業所を設ける場合は大臣許可、1つの都道府県内だけに営業所を置く場合は知事許可です。区分は『営業所の所在』で決まります。",source:"建設業法3条"},
+{id:"con008",subject:"建設業許可",question:"『知事許可』の業者は、許可を受けた都道府県以外にある工事現場で工事を施工することはできない。",correct:false,explain:"できます。大臣許可・知事許可の区分は営業所の所在で決まるもので、工事を施工できる地域を制限するものではありません。知事許可でも全国の現場で施工可能です。",source:"建設業法3条（許可区分は営業所基準）"},
+{id:"con009",subject:"建設業許可",question:"建設業許可は一度取得すれば、更新の手続きをしなくてもずっと有効である。",correct:false,explain:"建設業許可の有効期間は5年で、引き続き営業するには期間満了前に更新が必要です。更新を忘れると許可は失効します。",source:"建設業法3条3項（有効期間5年）"},
+{id:"con010",subject:"建設業許可",question:"建設業許可を取得するには、『経営業務の管理責任者（経管）』となれる人を置く必要がある。",correct:true,explain:"経営を適正に行う能力の要件として、常勤役員等（個人は本人・支配人）に一定の経営経験が必要です。許可後に不在になると取消し等の対象になります。",source:"建設業法7条1号（経営業務の管理責任者等）"},
+{id:"con011",subject:"建設業許可",question:"建設業許可を受けるには、各営業所に、その業種について一定の資格や実務経験を持つ専任技術者（営業所技術者）を置く必要がある。",correct:true,explain:"営業所ごとに、許可を受ける業種について有資格者または所定の実務経験者を専任で配置する必要があります（令和6年の改正で『営業所技術者』へ名称変更）。",source:"建設業法7条2号（営業所技術者等）"},
+{id:"con012",subject:"建設業許可",question:"令和2年（2020年）10月の改正により、経営業務の管理責任者の経営経験は、必ずしも『許可を受けようとする業種』での経験でなくてもよくなった。",correct:true,explain:"改正で『業種しばり』が撤廃され、建設業に関する経営経験であれば業種を問わず5年以上でOKになりました。加えて『常勤役員等＋直接補佐者』ルートも新設されています。",source:"建設業法施行規則7条（令和2年10月改正）"},
+{id:"con013",subject:"建設業許可",question:"建設業許可の業種は全部で29業種に区分されており、営業しようとする業種ごとに許可が必要である。",correct:true,explain:"土木一式・建築一式のほか、とび土工、電気、管、内装仕上、解体などを含む29業種に分かれ、営む業種ごとに許可が必要です（解体工事業は平成28年に追加）。",source:"建設業法別表第一（29業種）"},
+{id:"con014",subject:"建設業許可",question:"発注者から直接請け負った工事で、下請に出す代金の総額が一定額以上になる場合は、『特定建設業』の許可が必要になる。",correct:true,explain:"元請として下請に出す総額が基準以上になる場合は特定建設業許可が必要です。自社施工中心で下請総額が基準未満なら、一般建設業許可で足ります。",source:"建設業法3条（一般・特定の区分）"},
+{id:"con015",subject:"建設業許可",question:"特定建設業が必要となる下請代金の総額の基準は、令和7年（2025年）2月1日から引き上げられ、建築一式は8,000万円以上、それ以外は5,000万円以上となった。",correct:true,explain:"令和7年2月1日の改正で、建築一式は7,000万円→8,000万円、それ以外は4,500万円→5,000万円に引き上げられました。この総額を超えて下請に出す元請は特定建設業許可が必要です。",source:"建設業法施行令2条（令和7年2月改正）"},
+{id:"con016",subject:"建設業許可",question:"許可を受けずに、軽微な工事に当たらない建設工事を請け負って営業すると、建設業法違反として罰則の対象になる。",correct:true,explain:"無許可営業は3年以下の懲役または300万円以下の罰金の対象です。さらに違反すると一定期間（5年間）許可を受けられなくなるなどの不利益もあります。",source:"建設業法47条（罰則）"},
+{id:"con017",subject:"建設業許可",question:"建設業許可を受けた業者は、毎事業年度の終了後、決算の内容などを届け出る『決算変更届（事業年度終了届）』を提出する必要がある。",correct:true,explain:"毎事業年度終了後、原則4か月以内に決算変更届の提出が必要です。提出を怠ると更新ができない・指導の対象になるなどの不利益があります。",source:"建設業法11条2項（変更届出）"},
+{id:"con018",subject:"建設業許可",question:"建設業許可を受けるには、健康保険・厚生年金・雇用保険などの社会保険に適切に加入していることが要件となっている。",correct:true,explain:"適用事業所に該当する営業所について、社会保険（健保・厚年・雇用）への加入が許可要件です。未加入だと許可を受けられません。",source:"建設業法施行規則（社会保険加入要件）"},
+{id:"con019",subject:"建設業許可",question:"解体工事だけを行う場合、軽微な工事であれば、建設業許可も他のどんな登録も一切必要ない。",correct:false,explain:"軽微な工事でも、解体工事を行うには建設リサイクル法に基づく『解体工事業の登録』が必要です（建設業許可で解体工事業を取得している場合は登録不要）。",source:"建設リサイクル法（解体工事業の登録）"},
+{id:"con020",subject:"建設業許可",question:"同じ営業所で要件を満たせば、一人の人物が『経営業務の管理責任者』と『専任技術者（営業所技術者）』を兼ねることができる。",correct:true,explain:"両方の要件を満たし、同一営業所に常勤していれば1人で兼任できます。個人事業主や一人法人で、代表者本人が両方を兼ねるケースが典型です。",source:"建設業許可事務ガイドライン（兼務の取扱い）"}
+];
+
+let DB={questions:[],timeLimitOn:true};
+let current=null, mode='all', queue=[], answered=false, editId=null, truthSel=null;
+let sessionTotal=0, sessionDone=0, sessionOK=0;
+let timerInt=null, timeLeft=0;
+
+/* ---------- storage（localStorageが使えない環境でも動くようフォールバック） ---------- */
+const mem={};
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return mem[k]||null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){mem[k]=v;}}
+function uid(){return 'q'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function save(){lsSet(KEY,JSON.stringify(DB));}
+
+function migrateQ(q){
+  return Object.assign({},q,{
+    id:q.id||uid(),
+    attempts:q.attempts||0,
+    wrong:q.wrong||0,
+    stage:(q.stage!=null?q.stage:0),
+    due:(q.due!==undefined?q.due:(q.attempts>0?Date.now():null))
+  });
+}
+function normalize(){
+  DB.questions.forEach(q=>{
+    if(q.stage==null)q.stage=0;
+    if(q.due===undefined)q.due=(q.attempts>0?Date.now():null);
+    if(q.attempts==null)q.attempts=0;
+    if(q.wrong==null)q.wrong=0;
+  });
+}
+/* 内蔵40問を、まだ持っていない分だけ合体（既存データは一切消さない） */
+function mergePreloaded(){
+  const have=new Set(DB.questions.map(q=>q.id));
+  let added=0;
+  PRELOADED.forEach(p=>{
+    if(!have.has(p.id)){
+      DB.questions.push(Object.assign({attempts:0,wrong:0,stage:0,due:null},p));
+      added++;
+    }
+  });
+  return added;
+}
+function load(){
+  const raw=lsGet(KEY);
+  if(raw){
+    try{DB=JSON.parse(raw);}catch(e){DB={questions:[],timeLimitOn:true};}
+    if(!Array.isArray(DB.questions))DB.questions=[];
+    normalize();
+    const n=mergePreloaded();
+    if(n>0)toastLater('入管法・建設業許可の問題を '+n+' 問追加しました🦐');
+  }else{
+    /* 旧アプリ（司法試験ドリル）のデータが同じブラウザにあれば自動で引き継ぐ */
+    const old=lsGet(OLD_KEY);
+    if(old){
+      try{
+        const d=JSON.parse(old);
+        if(d.questions&&Array.isArray(d.questions)){
+          DB.questions=d.questions.map(migrateQ);
+          DB.timeLimitOn=(d.timeLimitOn!==false);
+          toastLater('旧アプリの問題と記録を引き継ぎました（'+DB.questions.length+'問）');
+        }
+      }catch(e){}
+    }
+    const n=mergePreloaded();
+    if(n>0&&!old)toastLater('入管法・建設業許可 計'+n+'問入りでスタート！🦐');
+  }
+  DB.timeLimitOn=(DB.timeLimitOn!==false);
+  normalize();
+  save();
+}
+
+/* ---------- エビングハウス復習エンジン ---------- */
+function applySR(q,isCorrect){
+  q.attempts++;
+  if(isCorrect){
+    q.stage=Math.min(q.stage+1,MAX_LV);
+    q.due=Date.now()+INTERVALS[Math.min(q.stage-1,MAX_LV-1)]*DAY;
+  }else{
+    q.wrong++;
+    q.stage=0;
+    q.due=Date.now();
+  }
+}
+function dueList(){
+  const now=Date.now();
+  return DB.questions.filter(q=>q.due!=null&&q.due<=now).sort((a,b)=>a.due-b.due);
+}
+function fmtDue(ts){
+  if(ts==null)return '—';
+  if(ts<=Date.now())return 'いま復習どき';
+  const d=new Date(ts),n=new Date();
+  const md=(d.getMonth()+1)+'/'+d.getDate();
+  const dd=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(n.getFullYear(),n.getMonth(),n.getDate()))/DAY);
+  if(dd<=0)return '今日中（'+md+'）';
+  if(dd===1)return '明日（'+md+'）';
+  return dd+'日後（'+md+'）';
+}
+function lvDots(stage){
+  let s='';
+  for(let i=0;i<MAX_LV;i++)s+=(i<stage?'●':'○');
+  return s;
+}
+
+/* ---------- 画面遷移 ---------- */
+function goView(v){
+  stopTimer();
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  if(v==='home')refreshHome();
+  if(v==='manage')renderManage();
+  if(v==='stats')renderStats();
+  window.scrollTo(0,0);
+}
+function refreshHome(){
+  document.getElementById('subCount').textContent='問題 '+DB.questions.length+' 問';
+  const due=dueList().length;
+  const badge=document.getElementById('ebbBadge');
+  badge.style.display=due>0?'flex':'none';
+  badge.textContent=due;
+  document.getElementById('ebbSub').textContent=due>0?('復習どきの問題が '+due+' 問あります'):'忘れる直前の問題から復習';
+  const miss=DB.questions.filter(q=>q.wrong>0).length;
+  document.getElementById('qMiss').textContent=miss;
+  const at=DB.questions.reduce((s,q)=>s+q.attempts,0);
+  const wr=DB.questions.reduce((s,q)=>s+q.wrong,0);
+  document.getElementById('qAcc').textContent=at>0?Math.round((at-wr)/at*100)+'%':'—';
+  const sel=document.getElementById('subjSelect');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— 科目を選ぶとすぐ出題 —</option>'+
+    subjects().map(s=>'<option value="'+escA(s)+'">'+escH(s)+'</option>').join('');
+  sel.value=cur||'';
+}
+function subjects(){
+  return [...new Set(DB.questions.map(q=>q.subject||'（科目なし）'))];
+}
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escA(s){return escH(s).replace(/"/g,'&quot;');}
+
+/* ---------- 出題 ---------- */
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function startQuiz(m,subject){
+  mode=m;
+  if(m==='ebbing'){
+    queue=dueList();
+    if(!queue.length){toast('いま復習どきの問題はありません🦐 また後で！');return;}
+  }else if(m==='mistakes'){
+    queue=shuffle(DB.questions.filter(q=>q.wrong>0));
+    if(!queue.length){toast('間違えた問題はまだありません');return;}
+  }else if(m==='subject'){
+    queue=shuffle(DB.questions.filter(q=>(q.subject||'（科目なし）')===subject));
+    if(!queue.length){toast('この科目の問題がありません');return;}
+  }else{
+    queue=shuffle(DB.questions.slice());
+    if(!queue.length){toast('問題がありません。問題管理から追加してください');return;}
+  }
+  sessionTotal=queue.length;sessionDone=0;sessionOK=0;
+  document.getElementById('doneBox').style.display='none';
+  document.getElementById('quizBody').style.display='block';
+  goView('quiz');
+  nextQ(true);
+}
+function startBySubject(){
+  const s=document.getElementById('subjSelect').value;
+  if(s)startQuiz('subject',s);
+}
+function nextQ(first){
+  if(!first&&queue.length===0){finishQuiz();return;}
+  current=queue.shift();
+  if(!current){finishQuiz();return;}
+  answered=false;
+  document.getElementById('qProg').textContent=(sessionDone+1)+' / '+sessionTotal;
+  const md=document.getElementById('qMode');
+  md.textContent=mode==='ebbing'?'🦐 エビング':mode==='mistakes'?'間違いだけ':mode==='subject'?'科目別':'ランダム';
+  md.classList.toggle('ebb',mode==='ebbing');
+  document.getElementById('qSubj').textContent=current.subject||'（科目なし）';
+  document.getElementById('qText').textContent=current.question;
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('ansRow').style.display='flex';
+  startTimer();
+  window.scrollTo(0,0);
+}
+function answer(choice){
+  if(answered||!current)return;
+  answered=true;stopTimer();
+  const isCorrect=(choice===current.correct);
+  applySR(current,isCorrect);
+  sessionDone++;if(isCorrect)sessionOK++;
+  save();
+  const v=document.getElementById('verdict');
+  if(choice===null){v.textContent='わからん → 復習リストへ';v.className='verdict ng';}
+  else if(isCorrect){v.textContent='正解！';v.className='verdict ok';}
+  else{v.textContent='ざんねん…';v.className='verdict ng';}
+  document.getElementById('truth').innerHTML='答え：<b style="font-size:20px;color:'+(current.correct?'var(--ok)':'var(--ng)')+'">'+(current.correct?'○':'×')+'</b>';
+  const exp=document.getElementById('exp');
+  if(current.explain){exp.style.display='block';exp.textContent=current.explain;}
+  else exp.style.display='none';
+  const src=document.getElementById('src');
+  if(current.source){src.style.display='block';src.textContent='根拠：'+current.source;}
+  else src.style.display='none';
+  document.getElementById('lvInfo').innerHTML='記憶レベル <b>'+lvDots(current.stage)+'</b>　次の復習：'+fmtDue(current.due);
+  document.getElementById('ansRow').style.display='none';
+  document.getElementById('result').classList.add('show');
+}
+function finishQuiz(){
+  stopTimer();
+  document.getElementById('quizBody').style.display='none';
+  const box=document.getElementById('doneBox');
+  box.style.display='block';
+  if(mode==='ebbing'){
+    document.getElementById('doneTitle').textContent='復習ぜんぶ完了！🦐';
+    const soon=DB.questions.filter(q=>q.due!=null&&q.due>Date.now()).sort((a,b)=>a.due-b.due)[0];
+    document.getElementById('doneMsg').textContent=(sessionOK+' / '+sessionDone+' 正解。')+(soon?('次の復習どきは '+fmtDue(soon.due)+' です。'):'');
+  }else{
+    document.getElementById('doneTitle').textContent='おつかれさま！';
+    document.getElementById('doneMsg').textContent=sessionOK+' / '+sessionDone+' 正解でした。';
+  }
+}
+function endQuiz(){stopTimer();goView('home');}
+
+/* ---------- タイマー ---------- */
+function startTimer(){
+  stopTimer();
+  const bar=document.getElementById('timerBar');
+  if(!DB.timeLimitOn){bar.style.display='none';return;}
+  bar.style.display='block';
+  timeLeft=TIME_LIMIT;
+  const fill=document.getElementById('timerFill');
+  fill.style.width='100%';fill.className='';
+  timerInt=setInterval(()=>{
+    timeLeft--;
+    const pct=Math.max(0,timeLeft/TIME_LIMIT*100);
+    fill.style.width=pct+'%';
+    if(timeLeft<=3)fill.className='hurry';
+    else if(timeLeft<=6)fill.className='warn';
+    if(timeLeft<=0){stopTimer();if(!answered)answer(null);}
+  },1000);
+}
+function stopTimer(){if(timerInt){clearInterval(timerInt);timerInt=null;}}
+
+/* ---------- 問題管理 ---------- */
+function renderManage(){
+  const fil=document.getElementById('mFilter');
+  const cur=fil.value;
+  fil.innerHTML='<option value="">すべての科目</option>'+
+    subjects().map(s=>'<option value="'+escA(s)+'">'+escH(s)+'</option>').join('');
+  fil.value=cur||'';
+  const dl=document.getElementById('subjList');
+  dl.innerHTML=subjects().map(s=>'<option value="'+escA(s)+'">').join('');
+  const list=document.getElementById('mList');
+  const items=DB.questions.filter(q=>!fil.value||(q.subject||'（科目なし）')===fil.value);
+  if(!items.length){list.innerHTML='<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">問題がありません。「＋追加」から作成できます。</p>';return;}
+  list.innerHTML=items.map(q=>`
+    <div class="m-item">
+      <div class="t">${escH(q.question)}</div>
+      <div class="meta">
+        <span class="mk ${q.correct?'o':'x'}">${q.correct?'○':'×'}</span>
+        <span>${escH(q.subject||'（科目なし）')}</span>
+        <span>記憶 ${lvDots(q.stage)}</span>
+        <span>復習：${fmtDue(q.due)}</span>
+      </div>
+      <div class="ops">
+        <button onclick="editQ('${q.id}')">編集</button>
+        <button class="del" onclick="delQ('${q.id}')">削除</button>
+      </div>
+    </div>`).join('');
+}
+function openForm(){
+  editId=null;truthSel=null;
+  document.getElementById('f-subject').value='';
+  document.getElementById('f-question').value='';
+  document.getElementById('f-explain').value='';
+  document.getElementById('f-source').value='';
+  setTruth(null);
+  document.getElementById('form').classList.add('show');
+  document.getElementById('f-subject').focus();
+}
+function setTruth(v){
+  truthSel=v;
+  document.getElementById('tO').className=(v===true?'sel-o':'');
+  document.getElementById('tX').className=(v===false?'sel-x':'');
+}
+function editQ(id){
+  const q=DB.questions.find(x=>x.id===id);if(!q)return;
+  editId=id;
+  document.getElementById('f-subject').value=q.subject||'';
+  document.getElementById('f-question').value=q.question;
+  document.getElementById('f-explain').value=q.explain||'';
+  document.getElementById('f-source').value=q.source||'';
+  setTruth(q.correct);
+  document.getElementById('form').classList.add('show');
+  window.scrollTo(0,0);
+}
+function delQ(id){
+  const q=DB.questions.find(x=>x.id===id);if(!q)return;
+  if(!confirm('この問題を削除しますか？\n「'+q.question.slice(0,30)+'…」'))return;
+  DB.questions=DB.questions.filter(x=>x.id!==id);
+  save();renderManage();refreshHomeSilent();
+  toast('削除しました');
+}
+function saveForm(){
+  const subject=document.getElementById('f-subject').value.trim();
+  const question=document.getElementById('f-question').value.trim();
+  const explain=document.getElementById('f-explain').value.trim();
+  const source=document.getElementById('f-source').value.trim();
+  if(!question){toast('問題文を入力してください');return;}
+  if(truthSel===null||truthSel===undefined){toast('正解（○か×）を選んでください');return;}
+  if(editId){
+    const q=DB.questions.find(x=>x.id===editId);
+    if(q){q.subject=subject;q.question=question;q.correct=truthSel;q.explain=explain;q.source=source;}
+    toast('更新しました');
+  }else{
+    DB.questions.push({id:uid(),subject,question,correct:truthSel,explain,source,attempts:0,wrong:0,stage:0,due:null});
+    toast('追加しました');
+  }
+  save();
+  document.getElementById('form').classList.remove('show');
+  editId=null;
+  renderManage();refreshHomeSilent();
+}
+function refreshHomeSilent(){document.getElementById('subCount').textContent='問題 '+DB.questions.length+' 問';}
+
+/* ---------- 学習記録 ---------- */
+function renderStats(){
+  const at=DB.questions.reduce((s,q)=>s+q.attempts,0);
+  const wr=DB.questions.reduce((s,q)=>s+q.wrong,0);
+  document.getElementById('sAttempts').textContent=at;
+  document.getElementById('sAcc').textContent=at>0?Math.round((at-wr)/at*100)+'%':'—';
+  const now=Date.now();
+  document.getElementById('dueNow').textContent=dueList().length+'問';
+  document.getElementById('dueTom').textContent=DB.questions.filter(q=>q.due!=null&&q.due<=now+DAY).length+'問';
+  document.getElementById('dueWeek').textContent=DB.questions.filter(q=>q.due!=null&&q.due<=now+7*DAY).length+'問';
+  const dist=[];
+  for(let lv=0;lv<=MAX_LV;lv++)dist.push(DB.questions.filter(q=>q.stage===lv).length);
+  const max=Math.max(1,...dist);
+  document.getElementById('lvDist').innerHTML=dist.map((n,lv)=>`
+    <div class="lvrow">
+      <span class="lab">${lvDots(lv)}</span>
+      <span class="bar"><i style="width:${n/max*100}%"></i></span>
+      <span class="n">${n}問</span>
+    </div>`).join('');
+  const sw=document.getElementById('swTimer');
+  sw.classList.toggle('on',DB.timeLimitOn);
+  sw.setAttribute('aria-checked',DB.timeLimitOn);
+}
+function toggleTimer(){
+  DB.timeLimitOn=!DB.timeLimitOn;save();renderStats();
+  toast(DB.timeLimitOn?'10秒タイマー：ON':'10秒タイマー：OFF');
+}
+function resetStats(){
+  if(!confirm('学習記録（正答率・記憶レベル・復習予定）をすべてリセットします。問題自体は消えません。よろしいですか？'))return;
+  DB.questions.forEach(q=>{q.attempts=0;q.wrong=0;q.stage=0;q.due=null;});
+  save();renderStats();refreshHomeSilent();
+  toast('学習記録をリセットしました');
+}
+
+/* ---------- バックアップ ---------- */
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  const d=new Date();
+  a.download='ox_ebbing_backup_'+d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2)+'.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('バックアップを書き出しました');
+}
+function importData(ev){
+  const file=ev.target.files[0];
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!d.questions||!Array.isArray(d.questions))throw new Error('形式が違います');
+      /* 合体（マージ）方式：同じidは読み込んだ側で上書き、それ以外は追加。既存は消さない */
+      const map=new Map(DB.questions.map(q=>[q.id,q]));
+      let added=0,updated=0;
+      d.questions.map(migrateQ).forEach(q=>{
+        if(map.has(q.id)){map.set(q.id,q);updated++;}
+        else{map.set(q.id,q);added++;}
+      });
+      DB.questions=[...map.values()];
+      if(d.timeLimitOn!==undefined)DB.timeLimitOn=(d.timeLimitOn!==false);
+      normalize();save();
+      refreshHomeSilent();renderStats();
+      toast('読み込み完了：追加 '+added+' 問／更新 '+updated+' 問');
+    }catch(e){
+      toast('読み込めませんでした：JSONの形式を確認してください');
+    }
+    ev.target.value='';
+  };
+  r.readAsText(file);
+}
+
+/* ---------- toast ---------- */
+let toastT=null,pendingToasts=[];
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  if(toastT)clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),2600);
+}
+function toastLater(msg){pendingToasts.push(msg);}
+
+/* ---------- init ---------- */
+load();
+refreshHome();
+setTimeout(()=>{if(pendingToasts.length)toast(pendingToasts.join('　'));},400);
+</script>
+</body>
+</html>
